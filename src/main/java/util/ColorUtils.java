@@ -5,62 +5,96 @@ import com.hypixel.hytale.server.core.Message;
 import java.awt.*;
 
 public class ColorUtils {
-    public static final Color FAKE_COLOR_BOLD = new Color(0x666666);
 
-
-    public static Color getColorFromChar(char c){
-        return switch (c) {
-            case '0' -> new Color(0x000000); // Black
-            case '1' -> new Color(0x0000AA); // Dark Blue
-            case '2' -> new Color(0x00AA00); // Dark Green
-            case '3' -> new Color(0x00AAAA); // Dark Aqua
-            case '4' -> new Color(0xAA0000); // Dark Red
-            case '5' -> new Color(0xAA00AA); // Dark Purple
-            case '6' -> new Color(0xFFAA00); // Gold
-            case '7' -> new Color(0xAAAAAA); // Gray
-            case '8' -> new Color(0x555555); // Dark Gray
-            case '9' -> new Color(0x5555FF); // Blue
-            case 'a' -> new Color(0x55FF55); // Green
-            case 'b' -> new Color(0x55FFFF); // Aqua
-            case 'c' -> new Color(0xFF5555); // Red
-            case 'd' -> new Color(0xFF55FF); // Light Purple
-            case 'e' -> new Color(0xFFFF55); // Yellow
-            case 'f' -> new Color(0xFFFFFF); // White
-            case 'l' -> FAKE_COLOR_BOLD;
+    private static Color getColorFromChar(char c) {
+        return switch (Character.toLowerCase(c)) {
+            case '0' -> new Color(0x000000);
+            case '1' -> new Color(0x0000AA);
+            case '2' -> new Color(0x00AA00);
+            case '3' -> new Color(0x00AAAA);
+            case '4' -> new Color(0xAA0000);
+            case '5' -> new Color(0xAA00AA);
+            case '6' -> new Color(0xFFAA00);
+            case '7' -> new Color(0xAAAAAA);
+            case '8' -> new Color(0x555555);
+            case '9' -> new Color(0x5555FF);
+            case 'a' -> new Color(0x55FF55);
+            case 'b' -> new Color(0x55FFFF);
+            case 'c' -> new Color(0xFF5555);
+            case 'd' -> new Color(0xFF55FF);
+            case 'e' -> new Color(0xFFFF55);
+            case 'f' -> new Color(0xFFFFFF);
             default -> null;
         };
     }
 
-    public static Message parseColorCodes(String text) {
-        // If there's no '&' in the string, just return a raw message
-        if (!text.contains("&")) {
-            return Message.raw(text);
-        }
-
-        // Split by the & symbol
-        String[] parts = text.split("&");
-        Message root = Message.empty();
-
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-
-            char colorChar = part.charAt(0);
-            String content = part.substring(1);
-            Color color = getColorFromChar(colorChar);
-
-            if (color != null) {
-                if(color.equals(FAKE_COLOR_BOLD)){
-                    root = Message.join(root, Message.raw(content).bold(true));
-                    continue;
-                }
-
-                root = Message.join(root, Message.raw(content).color(color));
-            } else {
-                // If the code wasn't recognized, just put it back as text
-                root = Message.join(root, Message.raw("&" + part));
-            }
-        }
-        return root;
+    private static boolean isFormatPrefix(char ch) {
+        return ch == '&' || ch == '§';
     }
 
+    private static Message segment(String s, Color color, boolean bold, boolean italic) {
+        Message m = Message.raw(s);
+        if (color != null) m = m.color(color);
+        m = m.bold(bold);
+        m = m.italic(italic);
+        return m;
+    }
+
+    public static Message parseColorCodes(String text) {
+        if (text == null || text.isEmpty()) return Message.empty();
+
+        Message root = Message.empty();
+
+        Color currentColor = Color.WHITE;
+        boolean isBold = false;
+        boolean isItalic = false;
+
+        StringBuilder buf = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+
+            // formatting prefix with a following code
+            if (isFormatPrefix(ch) && i + 1 < text.length()) {
+                char code = text.charAt(i + 1);
+
+                // flush what we have so far using the current styles
+                if (!buf.isEmpty()) {
+                    root = Message.join(root, segment(buf.toString(), currentColor, isBold, isItalic));
+                    buf.setLength(0);
+                }
+
+                // apply code
+                char lower = Character.toLowerCase(code);
+                if (lower == 'r') {
+                    currentColor = Color.WHITE;
+                    isBold = false;
+                } else if (lower == 'l') {
+                    isBold = true;
+                } else if (lower == 'o') {
+                    isItalic = true;
+                } else {
+                    Color newColor = getColorFromChar(lower);
+                    if (newColor != null) {
+                        currentColor = newColor;
+                    } else {
+                        buf.append(ch).append(code);
+                    }
+                }
+
+                i++; // skip the code char too
+                continue;
+            }
+
+            // normal character
+            buf.append(ch);
+        }
+
+        // flush remaining text
+        if (!buf.isEmpty()) {
+            root = Message.join(root, segment(buf.toString(), currentColor, isBold, isItalic));
+        }
+
+        return root;
+    }
 }
