@@ -25,6 +25,8 @@ public class ConfigObjectProvider<T> extends BlockingDiskFile {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        PathUtils.initializeAndEnsurePathing(PathUtils.getPathForConfig(configFileName), this);
     }
 
     @Override
