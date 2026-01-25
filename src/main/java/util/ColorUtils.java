@@ -43,6 +43,18 @@ public class ColorUtils {
     public static Message parseColorCodes(String text) {
         if (text == null || text.isEmpty()) return Message.empty();
 
+        if(!text.contains("&") && !text.contains("§")) {
+            return segment(text, Color.WHITE, false, false);
+        }
+
+        if(text.startsWith("'") || text.startsWith("\"")) {
+            text = text.substring(1);
+        }
+
+        if(text.endsWith("'") || text.endsWith("\"")) {
+            text = text.substring(0, text.length() - 1);
+        }
+
         Message root = Message.empty();
 
         Color currentColor = Color.WHITE;
