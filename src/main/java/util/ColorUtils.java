@@ -5,26 +5,32 @@ import java.awt.*;
 
 public class ColorUtils {
 
+    private static final Color[] MINECRAFT_COLORS = {
+            new Color(0x000000), // 0
+            new Color(0x0000AA), // 1
+            new Color(0x00AA00), // 2
+            new Color(0x00AAAA), // 3
+            new Color(0xAA0000), // 4
+            new Color(0xAA00AA), // 5
+            new Color(0xFFAA00), // 6
+            new Color(0xAAAAAA), // 7
+            new Color(0x555555), // 8
+            new Color(0x5555FF), // 9
+            new Color(0x55FF55), // a
+            new Color(0x55FFFF), // b
+            new Color(0xFF5555), // c
+            new Color(0xFF55FF), // d
+            new Color(0xFFFF55), // e
+            new Color(0xFFFFFF)  // f
+    };
+
     private static Color getColorFromChar(char c) {
-        return switch (Character.toLowerCase(c)) {
-            case '0' -> new Color(0x000000);
-            case '1' -> new Color(0x0000AA);
-            case '2' -> new Color(0x00AA00);
-            case '3' -> new Color(0x00AAAA);
-            case '4' -> new Color(0xAA0000);
-            case '5' -> new Color(0xAA00AA);
-            case '6' -> new Color(0xFFAA00);
-            case '7' -> new Color(0xAAAAAA);
-            case '8' -> new Color(0x555555);
-            case '9' -> new Color(0x5555FF);
-            case 'a' -> new Color(0x55FF55);
-            case 'b' -> new Color(0x55FFFF);
-            case 'c' -> new Color(0xFF5555);
-            case 'd' -> new Color(0xFF55FF);
-            case 'e' -> new Color(0xFFFF55);
-            case 'f' -> new Color(0xFFFFFF);
-            default -> null;
-        };
+        int index = Character.digit(c, 16);
+
+        if (index >= 0 && index < 16) {
+            return MINECRAFT_COLORS[index];
+        }
+        return null;
     }
 
     private static boolean isFormatPrefix(char ch) {
