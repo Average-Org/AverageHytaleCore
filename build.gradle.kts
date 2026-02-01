@@ -1,12 +1,10 @@
-import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
-
 plugins {
     id("java")
     id("com.gradleup.shadow") version "9.3.0"
 }
 
 group = "github.renderbr.hytale"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
@@ -21,7 +19,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     compileOnly("com.hypixel.hytale:Server:2026.01.27-734d39026")
     implementation("com.j256.ormlite:ormlite-jdbc:6.1")
-    implementation("io.roastedroot:sqlite4j:3.51.2.0")
+    implementation(files("sqlite4j-compiled.jar"))
 }
 
 tasks.test {
@@ -31,7 +29,6 @@ tasks.test {
 tasks.shadowJar {
     mergeServiceFiles()
     isZip64 = true
-    transform(AppendingTransformer::class.java){
-        resource = "META-INF/services/java.sql.Driver"
-    }
+    isPreserveFileTimestamps = true
+    exclude("**/SQLiteModuleMachineFuncGroup_0.class")
 }
