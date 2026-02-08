@@ -1,11 +1,19 @@
 package util;
 
 import com.hypixel.hytale.server.core.Message;
+import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
+
 import java.awt.*;
+import java.util.Optional;
 
-public class ColorUtils {
+public final class ColorUtils {
+    private ColorUtils() {
+    }
 
-    private static final Color[] MINECRAFT_COLORS = {
+    private static final char AMPERSAND_FORMAT_PREFIX = '&';
+    private static final char SECTION_SIGN_FORMAT_PREFIX = '§';
+
+    private static final Color[] COLOR_MAP = {
             new Color(0x000000), // 0
             new Color(0x0000AA), // 1
             new Color(0x00AA00), // 2
@@ -24,45 +32,60 @@ public class ColorUtils {
             new Color(0xFFFFFF)  // f
     };
 
-    private static Color getColorFromChar(char c) {
-        int index = Character.digit(c, 16);
-
-        if (index >= 0 && index < 16) {
-            return MINECRAFT_COLORS[index];
+    /**
+     * Gets the respective color from a hex character.
+     *
+     * @param hexCharacter Hex character
+     * @return A color object, if valid, null otherwise
+     */
+    public static Optional<Color> getColorFromChar(char hexCharacter) {
+        int colorIndex = Character.digit(hexCharacter, 16);
+        if (colorIndex >= 0 && colorIndex < 16) {
+            return Optional.of(COLOR_MAP[colorIndex]);
         }
-        return null;
+
+        return Optional.empty();
     }
 
     private static boolean isFormatPrefix(char ch) {
-        return ch == '&' || ch == '§';
+        return ch == AMPERSAND_FORMAT_PREFIX || ch == SECTION_SIGN_FORMAT_PREFIX;
     }
 
-    private static Message segment(String s, Color color, boolean bold, boolean italic) {
-        Message m = Message.raw(s);
-        if (color != null) m = m.color(color);
-        m = m.bold(bold);
-        m = m.italic(italic);
-        return m;
+    private static Message segment(String text, Color color, boolean bold, boolean italic) {
+        Message message = Message.raw(text);
+        if (color != null) {
+            message = message.color(color);
+        }
+        return message.bold(bold).italic(italic);
     }
 
+    /**
+     * Parses color codes from a string.
+     *
+     * @param text The text to parse
+     * @return A formatted Hytale message
+     */
     public static Message parseColorCodes(String text) {
         return parseColorCodes(text, true);
     }
 
+    /**
+     * Parses color codes from a string, optionally including markdown links.
+     *
+     * @param text         The text to parse
+     * @param includeLinks Whether to include markdown links
+     * @return A formatted Hytale message
+     */
     public static Message parseColorCodes(String text, boolean includeLinks) {
         if (text == null || text.isEmpty()) return Message.empty();
 
         // strip surrounding quotes
-        if (text.length() >= 2) {
-            if ((text.startsWith("'") && text.endsWith("'")) ||
-                    (text.startsWith("\"") && text.endsWith("\""))) {
-                text = text.substring(1, text.length() - 1);
-            }
-        }
+        text = stripSurroundingQuotes(text);
 
         // fast path if no formatting needed
-        if (!text.contains("&") && !text.contains("§") && (!includeLinks || !text.contains("["))) {
-            return segment(text, Color.WHITE, false, false);
+        if (!text.contains(Character.toString(AMPERSAND_FORMAT_PREFIX)) && !text.contains(Character.toString(SECTION_SIGN_FORMAT_PREFIX))
+                && (!includeLinks || !text.contains("["))) {
+            return Message.raw(text);
         }
 
         Message root = Message.empty();
@@ -72,15 +95,15 @@ public class ColorUtils {
         boolean isBold = false;
         boolean isItalic = false;
 
-        int len = text.length();
-        for (int i = 0; i < len; i++) {
-            char ch = text.charAt(i);
+        int textLength = text.length();
+        for (int i = 0; i < textLength; i++) {
+            char currentCharacter = text.charAt(i);
 
             // check for markdown link pattern [text](url)
-            if (includeLinks && ch == '[') {
+            if (includeLinks && currentCharacter == '[') {
                 int closeBracket = text.indexOf(']', i);
                 if (closeBracket > i) {
-                    if (closeBracket + 1 < len && text.charAt(closeBracket + 1) == '(') {
+                    if (closeBracket + 1 < textLength && text.charAt(closeBracket + 1) == '(') {
                         int closeParen = text.indexOf(')', closeBracket + 1);
                         if (closeParen > closeBracket + 1) {
 
@@ -108,7 +131,7 @@ public class ColorUtils {
             }
 
             // handle color codes
-            if (isFormatPrefix(ch) && i + 1 < len) {
+            if (isFormatPrefix(currentCharacter) && i + 1 < textLength) {
                 char code = text.charAt(i + 1);
 
                 // flush current buffer
@@ -127,11 +150,11 @@ public class ColorUtils {
                 } else if (lower == 'o') {
                     isItalic = true;
                 } else {
-                    Color newColor = getColorFromChar(lower);
-                    if (newColor != null) {
-                        currentColor = newColor;
+                    Optional<Color> newColor = getColorFromChar(lower);
+                    if (newColor.isPresent()) {
+                        currentColor = newColor.get();
                     } else {
-                        buf.append(ch).append(code);
+                        buf.append(currentCharacter).append(code);
                     }
                 }
 
@@ -139,7 +162,7 @@ public class ColorUtils {
                 continue;
             }
 
-            buf.append(ch);
+            buf.append(currentCharacter);
         }
 
         // flush remaining text
@@ -148,5 +171,16 @@ public class ColorUtils {
         }
 
         return root;
+    }
+
+    @NonNullDecl
+    private static String stripSurroundingQuotes(String text) {
+        if (text.length() >= 2) {
+            if ((text.startsWith("'") && text.endsWith("'")) ||
+                    (text.startsWith("\"") && text.endsWith("\""))) {
+                text = text.substring(1, text.length() - 1);
+            }
+        }
+        return text;
     }
 }

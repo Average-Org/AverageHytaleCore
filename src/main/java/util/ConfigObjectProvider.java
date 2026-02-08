@@ -5,25 +5,39 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hypixel.hytale.server.core.util.io.BlockingDiskFile;
+import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.Objects;
 
-public class ConfigObjectProvider<T> extends BlockingDiskFile {
+/**
+ * Abstract class to provide easy setup for configuration files based on POJOs.
+ * @param <T> A class to create a configuration object from
+ */
+public abstract class ConfigObjectProvider<T> extends BlockingDiskFile {
+    private static final String CONFIG_PROPERTY = "config";
+
     @Nonnull
-    public T config;
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private T config;
+    private final Class<T> configClass;
+
+    private static final Gson GSON =
+            new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
 
 
     public ConfigObjectProvider(String configFileName, Class<T> clazz) {
         super(PathUtils.getPathForConfig(configFileName));
 
+        this.configClass = Objects.requireNonNull(clazz);
         try {
             this.config = clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to instantiate config class: " + clazz.getName(), e);
         }
 
         PathUtils.initializeAndEnsurePathing(PathUtils.getPathForConfig(configFileName), this);
@@ -31,24 +45,30 @@ public class ConfigObjectProvider<T> extends BlockingDiskFile {
 
     @Override
     protected void read(BufferedReader bufferedReader) throws IOException {
-        JsonObject root = JsonParser.parseReader(bufferedReader).getAsJsonObject();
+        JsonObject rootObject = JsonParser.parseReader(bufferedReader).getAsJsonObject();
 
-        if (root.has("config")) {
-            this.config = (T) GSON.fromJson(root.get("config"), config.getClass());
+        if (!rootObject.has(CONFIG_PROPERTY)) {
+            throw new IOException("Config file is missing required root property: " + CONFIG_PROPERTY);
         }
+
+        var configElement = rootObject.get(CONFIG_PROPERTY);
+        this.config = GSON.fromJson(configElement, configClass);
     }
 
     @Override
-    protected void write(BufferedWriter bufferedWriter) throws IOException {
+    protected void write(BufferedWriter writer) throws IOException {
         JsonObject root = new JsonObject();
-        root.add("config", GSON.toJsonTree(this.config));
-        bufferedWriter.write(GSON.toJson(root));
+        root.add(CONFIG_PROPERTY, GSON.toJsonTree(this.config));
+        writer.write(GSON.toJson(root));
     }
 
     @Override
     protected void create(@Nonnull BufferedWriter fileWriter) throws IOException {
-        JsonObject root = new JsonObject();
-        root.add("config", GSON.toJsonTree(this.config));
-        fileWriter.write(GSON.toJson(root));
+        write(fileWriter);
+    }
+
+    @NonNullDecl
+    public T getConfig() {
+        return config;
     }
 }
