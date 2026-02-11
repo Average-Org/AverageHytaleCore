@@ -35,6 +35,12 @@ public class DatabaseService implements AutoCloseable {
 
         daoRepository.put(clazz, dao);
     }
+    
+    public void addTables(Class<?>... classes) throws SQLException {
+        for (Class<?> clazz : classes) {
+            addTable(clazz);
+        }
+    }
 
     /**
      * Gets a DAO of a specific ID type for a given class.

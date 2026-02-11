@@ -15,7 +15,8 @@ import java.util.Objects;
  * Static utility class that facilitates the creation of a database service. Sitting as a wrapper for ORMLite
  */
 public final class DbUtils {
-    private DbUtils() {}
+    private DbUtils() {
+    }
 
     static {
         // set ormlite logger to warning level
@@ -24,11 +25,15 @@ public final class DbUtils {
 
     /**
      * Initializes a database service with the given name.
+     *
      * @param databaseName The name of the database to initialize
      * @return The database service
-     * @throws SQLException Exception thrown by ORMLite
      */
-    public static DatabaseService initializeDatabase(String databaseName) throws SQLException {
+    public static DatabaseService initializeDatabase(String databaseName) {
+        return initializeDatabase(databaseName, new Class<?>[0]);
+    }
+
+    public static DatabaseService initializeDatabase(String databaseName, Class<?>... tables) {
         Objects.requireNonNull(databaseName, "Database name cannot be null");
 
         if (databaseName.isBlank()) {
@@ -39,7 +44,16 @@ public final class DbUtils {
         ensureDirectoryExists(path);
 
         String databaseUrl = "jdbc:sqlite:" + path.toAbsolutePath();
-        return new DatabaseService(databaseUrl);
+        try {
+            var databaseService = new DatabaseService(databaseUrl);
+            if (tables.length > 0) {
+                databaseService.addTables(tables);
+            }
+
+            return databaseService;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void ensureDirectoryExists(Path path) {
