@@ -1,5 +1,6 @@
 package models.db;
 
+import com.google.common.flogger.AbstractLogger;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
@@ -27,8 +28,14 @@ public class DatabaseService implements AutoCloseable {
     public final ConnectionSource connectionSource;
     public final Map<Class<?>, Dao<?, ?>> daoRepository = new ConcurrentHashMap<>();
     private final String dbFilePath;
+    private final AbstractLogger<?> logger;
 
     public DatabaseService(String databaseUrl) throws SQLException {
+        this(databaseUrl, HytaleLogger.forEnclosingClass());
+    }
+
+    public DatabaseService(String databaseUrl, AbstractLogger<?> logger) throws SQLException {
+        this.logger = logger;
         this.dbFilePath = databaseUrl.replace("jdbc:sqlite:", "");
 
         try {
@@ -41,7 +48,7 @@ public class DatabaseService implements AutoCloseable {
             DatabaseType dbType = new Sqlite4JDatabaseType();
             connectionSource = new JdbcConnectionSource(databaseUrl, dbType);
 
-            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.INFO).log("Connected to database at " + databaseUrl);
+            logger.at(java.util.logging.Level.INFO).log("Connected to database at " + databaseUrl);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -57,7 +64,7 @@ public class DatabaseService implements AutoCloseable {
             Dao<?, ?> dao = DaoManager.createDao(connectionSource, clazz);
             TableUtils.createTableIfNotExists(connectionSource, clazz);
             daoRepository.put(clazz, dao);
-            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.INFO).log("Registered table for class " + clazz.getName());
+            logger.at(java.util.logging.Level.INFO).log("Registered table for class " + clazz.getName());
 
             if(saveImmediately) save();
         } catch (Exception e) {
@@ -74,7 +81,7 @@ public class DatabaseService implements AutoCloseable {
             try {
                 addTable(clazz, false);
             } catch (Exception e) {
-                HytaleLogger.forEnclosingClass().at(java.util.logging.Level.SEVERE)
+                logger.at(java.util.logging.Level.SEVERE)
                         .log("Could not register table for class " + clazz.getName() + ": " + e.getMessage());
             }
         }
@@ -120,23 +127,18 @@ public class DatabaseService implements AutoCloseable {
      * Call this periodically or after major changes.
      */
     public synchronized void save() {
-        // 1. Resolve paths
         Path finalDbPath = Paths.get(dbFilePath).toAbsolutePath();
         Path backupPath = Paths.get(dbFilePath + ".bak").toAbsolutePath();
 
         try {
-            // Ensure folder exists
             if (Files.notExists(backupPath.getParent())) {
                 Files.createDirectories(backupPath.getParent());
             }
 
-            // Get the ORMLite connection
             DatabaseConnection conn = connectionSource.getReadWriteConnection(null);
             try {
-                // BYPASS ORMLITE: Get the raw java.sql.Connection
                 java.sql.Connection jdbcConn = (java.sql.Connection) conn.getUnderlyingConnection();
 
-                // Run the backup command using standard JDBC
                 try (java.sql.Statement stmt = jdbcConn.createStatement()) {
                     stmt.executeUpdate("backup to \"" + backupPath.toString() + "\"");
                 }
@@ -144,13 +146,12 @@ public class DatabaseService implements AutoCloseable {
                 connectionSource.releaseConnection(conn);
             }
 
-            // 2. Move the backup file to the real location
             Files.move(backupPath, finalDbPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 
-            HytaleLogger.forEnclosingClass().at(Level.INFO).log("Saved database to " + finalDbPath);
+            logger.at(Level.INFO).log("Saved database to " + finalDbPath);
 
         } catch (Exception e) {
-            HytaleLogger.forEnclosingClass().at(Level.SEVERE).log("Could not save database to " + finalDbPath + ": " + e);
+            logger.at(Level.SEVERE).log("Could not save database to " + finalDbPath + ": " + e);
         }
     }
 

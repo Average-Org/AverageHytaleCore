@@ -17,7 +17,9 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    compileOnly("com.hypixel.hytale:Server:2026.02.17-255364b8e")
+    val hytaleServer = "com.hypixel.hytale:Server:2026.02.17-255364b8e"
+    testImplementation(hytaleServer)
+    compileOnly(hytaleServer)
     implementation("com.j256.ormlite:ormlite-jdbc:6.1")
     implementation(files("sqlite4j-compiled.jar"))
 }
