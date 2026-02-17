@@ -1,5 +1,6 @@
 package util;
 
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.j256.ormlite.logger.Level;
 import com.j256.ormlite.logger.Logger;
 import models.db.DatabaseService;
@@ -43,15 +44,21 @@ public final class DbUtils {
         var path = PathUtils.getPathForConfig(databaseName + ".db");
         ensureDirectoryExists(path);
 
-        String databaseUrl = "jdbc:sqlite:" + path.toAbsolutePath();
+        String cleanPath = path.toString();
+        String databaseUrl = "jdbc:sqlite:" + cleanPath;
+
         try {
             var databaseService = new DatabaseService(databaseUrl);
             if (tables.length > 0) {
                 databaseService.addTables(tables);
             }
 
+            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.INFO)
+                    .log("Database initialized at " + path.toAbsolutePath() + " with tables: " + tables.length);
+
             return databaseService;
         } catch (SQLException e) {
+            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.SEVERE).log(e.toString());
             throw new RuntimeException(e);
         }
     }
