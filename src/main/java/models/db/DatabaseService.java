@@ -6,6 +6,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.db.DatabaseType;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.logger.Logger;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.support.DatabaseConnection;
 import com.j256.ormlite.table.TableUtils;
@@ -29,6 +30,11 @@ public class DatabaseService implements AutoCloseable {
     public final Map<Class<?>, Dao<?, ?>> daoRepository = new ConcurrentHashMap<>();
     private final String dbFilePath;
     private final AbstractLogger<?> logger;
+
+    static {
+        // set ormlite logger to warning level
+        Logger.setGlobalLogLevel(com.j256.ormlite.logger.Level.WARNING);
+    }
 
     public DatabaseService(String databaseUrl) throws SQLException {
         this(databaseUrl, HytaleLogger.forEnclosingClass());

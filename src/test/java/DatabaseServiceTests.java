@@ -1,7 +1,6 @@
 import com.google.common.flogger.AbstractLogger;
 import com.google.common.flogger.FluentLogger;
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
+import models.TestTable;
 import models.db.DatabaseService;
 import org.junit.jupiter.api.Test;
 
@@ -29,18 +28,6 @@ public class DatabaseServiceTests {
     void canCreateDatabase() throws SQLException {
         deleteDatabase();
         createDatabase();
-    }
-
-    @DatabaseTable(tableName = "test_table")
-    static class TestTable {
-        @DatabaseField(generatedId = true)
-        private long id;
-
-        @DatabaseField(canBeNull = false)
-        private String name;
-
-        public TestTable() {}
-        public TestTable(String name) { this.name = name; }
     }
 
     @Test

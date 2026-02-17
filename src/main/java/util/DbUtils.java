@@ -1,5 +1,6 @@
 package util;
 
+import com.google.common.flogger.AbstractLogger;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.j256.ormlite.logger.Level;
 import com.j256.ormlite.logger.Logger;
@@ -31,10 +32,14 @@ public final class DbUtils {
      * @return The database service
      */
     public static DatabaseService initializeDatabase(String databaseName) {
-        return initializeDatabase(databaseName, new Class<?>[0]);
+        return initializeDatabase(databaseName, HytaleLogger.forEnclosingClass());
     }
 
     public static DatabaseService initializeDatabase(String databaseName, Class<?>... tables) {
+        return initializeDatabase(databaseName, HytaleLogger.forEnclosingClass(), tables);
+    }
+
+    public static DatabaseService initializeDatabase(String databaseName, AbstractLogger<?> logger, Class<?>... tables) {
         Objects.requireNonNull(databaseName, "Database name cannot be null");
 
         if (databaseName.isBlank()) {
@@ -48,17 +53,17 @@ public final class DbUtils {
         String databaseUrl = "jdbc:sqlite:" + cleanPath;
 
         try {
-            var databaseService = new DatabaseService(databaseUrl);
+            var databaseService = new DatabaseService(databaseUrl, logger);
             if (tables.length > 0) {
                 databaseService.addTables(tables);
             }
 
-            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.INFO)
+            logger.at(java.util.logging.Level.INFO)
                     .log("Database initialized at " + path.toAbsolutePath() + " with tables: " + tables.length);
 
             return databaseService;
         } catch (SQLException e) {
-            HytaleLogger.forEnclosingClass().at(java.util.logging.Level.SEVERE).log(e.toString());
+            logger.at(java.util.logging.Level.SEVERE).log(e.toString());
             throw new RuntimeException(e);
         }
     }
