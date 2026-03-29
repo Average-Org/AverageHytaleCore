@@ -17,7 +17,7 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    val hytaleServer = "com.hypixel.hytale:Server:2026.02.17-255364b8e"
+    val hytaleServer = "com.hypixel.hytale:Server:2026.03.26-89796e57b"
     testImplementation(hytaleServer)
     compileOnly(hytaleServer)
     implementation("com.j256.ormlite:ormlite-jdbc:6.1")
