@@ -17,7 +17,7 @@ public final class UniverseUtils {
 
     static {
         try {
-            PLAYERS_FIELD = Universe.class.getDeclaredField("players");
+            PLAYERS_FIELD = Universe.class.getDeclaredField("playersByUuid");
             PLAYERS_FIELD.setAccessible(true);
         } catch (NoSuchFieldException e) {
             throw new ExceptionInInitializerError(new UniversePlayersNotFoundException(e));
